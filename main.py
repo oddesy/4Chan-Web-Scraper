@@ -13,14 +13,36 @@ from Thread import Thread
 # imports datetime to store time data in objects
 from datetime import datetime
 
+# imports the libraries needed to work with csv files
+import csv
+import os
 
-# type this into the anaconda prompt
+# imports libraries needed to run program every hour
+import time
+import schedule
+
+
+# to run this program, type this into the anaconda prompt:
 # python C:\Users\jacks\OneDrive\Desktop\Coding\4Chan-Web-Scraper\main.py
 
 
-# main function of the file
-def main ():
+# TO ADD:
+
+    # do data analytics
+
+
+
+
+
+
+# runs the main
+def data_from_pol_to_csv ():
     
+    # tells users that it is running again
+    print("Scanning /pol for new posts...")
+
+
+
     # the url we are using to draw text data
     url = "https://boards.4chan.org/pol/"
 
@@ -31,7 +53,7 @@ def main ():
     array = scrape_to_numpy(soup)
 
     # check for duplicate threads in the NumPy array and the dataset
-    array = check_duplicates(array)
+    remove_duplicates(array)
 
     # add NumPy array to the dataset file
     write_to_dataset(array)
@@ -39,10 +61,22 @@ def main ():
 
 
 
+# gets a soup of the /pol forum
+def get_soup_from_page (url):
+    
+    # Only use US websites
+    headers = {
+        "Accept-Language": 
+        "en-US, en;q=0.5"
+    }
+    
+    # defining and inititalizing requests varaible to hold the text information of the webpage
+    results = requests.get(url, headers=headers)
 
-    # iterate over multiple pages
-    # iterates over several webpages ____ many times or until ______
-    # url goes from the first page of pol being /pol/ to /pol/2 and ends at /pol/10
+    # first filtering of data
+    soup = BeautifulSoup(results.text, "html.parser")
+
+    return soup
 
 
 
@@ -57,7 +91,6 @@ def scrape_to_numpy (soup):
 
     # creates a list to store lists of Post objects in each thread
     THREADS = []
-    POSTS = []
 
     # iterates through each thread and 
     for thread in page:
@@ -98,7 +131,7 @@ def scrape_to_numpy (soup):
 
             
             # str parse through nameBlock until I find the span with the title
-            #containing the country 
+            # containing the country 
             parse = str(nameBlock.span.find_next_sibling().find_next_sibling())        
             
             # iterate over string
@@ -109,10 +142,14 @@ def scrape_to_numpy (soup):
                     quotation_index.append(index)
                 index = index + 1
             
-            # parses the country from the parse variable
-            countryOfOrigin = parse[quotation_index[2] + 1 : quotation_index[3]]
-            
 
+            # parses the country from the parse variable and the number of quotation marks
+            if (len(quotation_index) == 4):
+                countryOfOrigin = parse[quotation_index[2] + 1 : quotation_index[3]]
+            elif (len(quotation_index) > 4):
+                countryOfOrigin = "Moderator"
+            else:
+                countryOfOrigin = "<br> (Error)"
 
 
             # finding the text 
@@ -172,49 +209,141 @@ def scrape_to_numpy (soup):
     if (arr[0, 0] == None):
         arr = np.delete(arr, 0, 0)
 
+    # returns the array of the data for this page
+    return arr    
 
-    print (arr.shape)
 
-    print (arr)
+
+
+# ensures there are no duplicates of threads/data in the dataset
+def remove_duplicates (array):
+
+    # opening the dataset file
+    reader_file = open(r"C:\Users\jacks\OneDrive\Desktop\Coding\4Chan-Web-Scraper\Pol_Forum_Dataset.csv", 'r', encoding='utf-8')
+
+    # reading the CSV file
+    reader = csv.reader(reader_file)
+
+
+    # when the last duplicate in the array appears
+    last_row_duplicate_index = 0
+    
+    # the index iterator keeping track of which line of the dataset file is being examined
+    index = 0
+
+
+    # number of rows in the NumPy array
+    rows_in_NumPy_array = int((array.size) / 4)
+    #print(rows_in_NumPy_array)
+
+
+    # searches through the dataset file only the length of the array 
+    for lines in reader:
+
+        # defines the formatted_lines variable
+        formatted_lines = ""
+
+        # checks if the lines variable (the current line) is an empty list (whitespace)
+        # if not, sets formatted_lines to be a string concatenation of the list values
+        if (len(lines) != 0):
+            formatted_lines = "[" + str(lines[0]) + ", " + str(lines[1]) + ", " + str(lines[2]) + ", " + str(lines[3]) + "]"
+        #else:
+        #    print("empty")
+        #print(lines)
+        #print(formatted_lines)
+
+
+        # searches through the array for duplicate posts
+        for row in array:
+            
+            #print(row)
+            # makes the the NumPy rows 32formatted the same as the csv lines so that they may be tested for equality
+            formatted_row = "[" + str(row[0]) + ", " + str(row[1]) + ", " + str(row[2]) + ", " + str(row[3]) + "]"
+            #print(formatted_row)
+            
+            
+            # tests for duplicates
+            if (formatted_row == formatted_lines):
+                
+                #print("Found a duplicate!")
+                # sets the last duplicate to the current index
+                last_row_duplicate_index = index
+            
+
+
+        #print("Rows left is " + str(rows_in_NumPy_array))
+        # decrementing the rows_in_NumPy_array variable by 1
+        rows_in_NumPy_array = rows_in_NumPy_array - 1
+        
+
+        #print("Index is " + str(index))
+        # increments the index variable by 1
+        index = index + 1
+        
+
+        # detect if the search is exceeding the possible limit of duplicates
+        if (rows_in_NumPy_array < 0):
+            #print("Break")
+            break
+        
+
     
 
+    # closes the reader
+    reader_file.close()
 
 
-# gets a soup of the /pol forum
-def get_soup_from_page (url):
+    # removes every duplicate thread including the current one and after 
+    # for example if array has a duplicate at thread index 20, 
+    # remove the threads 20-end in the array from the dataset
+
+
+    # prints the number of posts added to the database file
+    num_added_posts = index - last_row_duplicate_index
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
+    print("Added " + str(num_added_posts) + " posts to csv file at time: " + current_time + ".\n")
+
+
+    # holds the rows to be removed
+    row_numbers_to_remove = []
+
+    #print(last_row_duplicate_index)
+    # populating the variable with the range of rows from the beginning to the row at the index
+    # its twice the last_row_duplicate_index because of the whitespace after every entry and + 1 because
+    # the range returns a list from [0, ..., n-1] and we want it to be from [0, ..., n]
+    for num in range((2 * last_row_duplicate_index) + 1):
+        row_numbers_to_remove.append(num)
+
+
+    # holds the rows that aren't deleted from the dataset file
+    lines = list()
     
-    # Only use US websites
-    headers = {
-        "Accept-Language": 
-        "en-US, en;q=0.5"
-    }
-    
-    # defining and inititalizing requests varaible to hold the text information of the webpage
-    results = requests.get(url, headers=headers)
 
-    # first filtering of data
-    soup = BeautifulSoup(results.text, "html.parser")
-
-    return soup
+    # reads the csv file and adds the rows that aren't being removed to a list
+    with open(r"C:\Users\jacks\OneDrive\Desktop\Coding\4Chan-Web-Scraper\Pol_Forum_Dataset.csv", 'r', encoding='utf-8') as read_file:
+        reader = csv.reader(read_file)
+        for row_number, row in enumerate(reader, start=1):
+            
+            # rows that are being removed and don't include empty rows
+            if((row_number not in row_numbers_to_remove) and (row != [])):
+                lines.append(row)
 
 
+    # remove everything in the original csv file.
+    file = r"C:\Users\jacks\OneDrive\Desktop\Coding\4Chan-Web-Scraper\Pol_Forum_Dataset.csv"
 
-# ensures there are no duplicates of threads/data in the dataset   
-def check_duplicates (array):
-
-    # loop through the NumPy array of scraped data
-    #for x in array:
-
-    print("Hello")
-
-    #check for duplicates in the saved dataset
+    if(os.path.exists(file) and os.path.isfile(file)):
+        os.remove(file)
+        #print("File deleted")
+    else:
+        print("File not found")
 
 
-    # if duplicate is spotted, remove duplicate thread from the dataset or the NumPy array
-
-
-
-    return array
+    # writes the rows of data that aren't being removed to the csv file
+    with open(r"C:\Users\jacks\OneDrive\Desktop\Coding\4Chan-Web-Scraper\Pol_Forum_Dataset.csv", 'w', encoding='utf-8') as write_file:
+        writer = csv.writer(write_file)
+        writer.writerows(lines)
 
 
 
@@ -222,15 +351,36 @@ def check_duplicates (array):
 # writes the correct NumPy array of data to the dataset file
 def write_to_dataset (array):
 
-    # iterates through the dataset and writes it in the dataset file
-    print("text")
+    # opening the dataset file
+    writer_file = open(r"C:\Users\jacks\OneDrive\Desktop\Coding\4Chan-Web-Scraper\Pol_Forum_Dataset.csv", 'a', encoding='utf-8')
 
- 
+    # creating the writer for the csv file 
+    writer = csv.writer(writer_file)
+    
+    # iterates through the dataset and writing the NumPy array to the dataset file
+    for row in array:
+        writer.writerow(row)
+
+    # closing the file
+    writer_file.close()
+
+
 
 
 # runs the main function if this is the file being run
 if __name__=="__main__":
-    main()
+    
+    # runs the main program once at the beginnning:   
+    print("Starting Program: \n\n") 
+
+
+    # runs the main program once every minute
+    schedule.every().minute.do(data_from_pol_to_csv) 
+    
+    # loops and runs the scheduled job indefinitely 
+    while True:  
+        schedule.run_pending()
+        time.sleep(1)
 
 
 
@@ -288,6 +438,7 @@ urls = ["https://boards.4chan.org/pol/", "https://boards.4chan.org/pol/2", "http
 
 
 
+
     
 """   
 original_post = thread.find("div", class_="postContainer opContainer")
@@ -299,14 +450,6 @@ post = postInfo(original_post)
 #print(findTime(post))
 
 reply_posts = thread.find("div", class_="postContainer replyContainer")
-
-
-
-
-
-
-
-
 
 
 # "postInfoM mobile" has the country of origin and time of posting
@@ -333,30 +476,10 @@ def findTitle(post):
     #return formatted_title
     return title
 
-
-
 """
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+"""
 #THREAD_TITLES
-
-
-
-
 
 
 #MESSAGES
@@ -368,34 +491,4 @@ def findTitle(post):
 #<blockquote class="postMessage" id= ""> </blockquote>
 
 #<div class="postContainer replyContainer" id=""> </div>
-
-
-
-
-
-
-
 """
-# initialize empty lists where you'll store data
-thread_titles = []
-time = []
-op_post_message = []
-post_messages = []
-images = []
-links = []
-
-
-TITLES = soup.find_all('div', class_='subject')
-
-TIME = soup.find_all('span', class_='dateTime')
-
-OPMESSAGE = soup.find_all('div', class_='postContainer opContainer')
-
-REPLIES = soup.find_all('div', class_='postContainer replyContainer')
-
-IMAGES = soup.find_all('a', class_='fileThumb')
-
-LINKS = soup.find_all('a', class_='quotelink')
-"""
-
-
