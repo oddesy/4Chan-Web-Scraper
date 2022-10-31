@@ -14,22 +14,6 @@ class Post:
         self.time = time
         self.text = text
     
-
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
+    

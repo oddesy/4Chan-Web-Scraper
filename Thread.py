@@ -10,28 +10,15 @@ import Post
 
 
 class Thread:
-    def __init__(self, title):
+    
+    # the posts=[] is there because python doesn't support multiple constructors
+    # thus, by default posts is an empty list when it is the constructor is called
+    # without posts given as an argument
+    def __init__(self, title, posts=[]):
         self.title = title
-        self.posts = []
+        self.posts = posts
+
+    # creates a way to set the posts 
+    def set_posts(self, new_posts):
+        self.posts = new_posts
     
-
-        
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
