@@ -49,6 +49,9 @@ def main():
 
 
     
+    # removes null rows
+    dataframe.dropna()
+
     # iterates through the string data in the dataframe and formats them
     for row in range(0, int(dataframe.size / 4)):
         
@@ -74,47 +77,61 @@ def main():
     print(dataframe)
 
 
-    # splitting data into labels and features 
-    #y = data.temp
-    #X = data.drop('temp', axis=1)  
-
-    # split the dataset into training and test
-    #X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=0.2)
 
 
 
 
 
-    # writing individual words from each
-    #for word in dataframe["Post Text"]:
-
-        # write each unique word to vocab.csv
+    print(dataframe["Post Text"][100])
 
 
 
 
-
-    # creating a vocabulary containing all the words each user ever posted on 4Chan/pol with the database
+    print("\n\n\n\n")
 
 
 
 
 
 
+    from sklearn.feature_extraction.text import CountVectorizer
+
+    # only includes words that appear in less than 80% of the document and 
+    # appear in at least 2 documents
+    count_vect = CountVectorizer(max_df=0.8, min_df=2, stop_words='english')
+    
+    #
+    doc_term_matrix = count_vect.fit_transform(dataframe["Post Text"].values.astype('U'))
+
+
+    print(doc_term_matrix[100:110])
+
+
+    print(doc_term_matrix)
 
 
 
 
 
+    from sklearn.decomposition import LatentDirichletAllocation
+
+    LDA = LatentDirichletAllocation(n_components=5, random_state=42)
+    LDA.fit(doc_term_matrix)
 
 
-    # ranking posts based on ------- racism, anti-semitism, homophobia, sexism
 
-    labels = ["Racism", "Anti-Semitism", "Homophobia", "Sexism"]
+    import random
+
+    for i in range(10):
+        random_id = random.randint(0,len(count_vect.get_feature_names()))
+        print(count_vect.get_feature_names()[random_id])
 
 
-    print(tf.version.VERSION)
-    print(len(tf.config.list_physical_devices('GPU')) > 0)
+
+    first_topic = LDA.components_[0]
+
+
+
 
 
 
@@ -195,3 +212,83 @@ if __name__=="__main__":
 
 
  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+# ranking posts based on ------- racism, anti-semitism, homophobia, sexism
+
+labels = ["Racism", "Anti-Semitism", "Homophobia", "Sexism"]
+
+
+print(tf.version.VERSION)
+print(len(tf.config.list_physical_devices('GPU')) > 0)
+"""
+
+
+
+
+
+
+
+
+
+
+
+# splitting data into labels and features 
+#y = data.temp
+#X = data.drop('temp', axis=1)  
+
+# split the dataset into training and test
+#X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=0.2)
+
+
+
+
+
+# writing individual words from each
+#for word in dataframe["Post Text"]:
+
+    # write each unique word to vocab.csv
+
+
+
+
+
+# creating a vocabulary containing all the words each user ever posted on 4Chan/pol with the database
+

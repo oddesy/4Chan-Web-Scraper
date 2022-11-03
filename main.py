@@ -70,22 +70,6 @@ def data_collection_and_processing ():
     
     # tells users that it is running again
     print("\nScanning /pol for new posts...")
-
-
-
-    # the url we are using to draw text data
-    url = "https://boards.4chan.org/pol/"
-
-
-
-
-
-
-
-
-
-
-
     
 
     urls = ["https://boards.4chan.org/pol/", "https://boards.4chan.org/pol/2", "https://boards.4chan.org/pol/3", 
@@ -94,47 +78,49 @@ def data_collection_and_processing ():
     "https://boards.4chan.org/pol/10"]
 
 
-
+    # creates a list to hold the html extracts of each url
     soups = []
 
     # loops through each of the urls in the list of urls
     for url in urls:
 
-        #
+        # add the extracted html of the url into the soups list
         soups.append(get_soup_from_page(url))
 
-
-
-
+    
+    # contains a list of all threads from the urls and each post within each thread
     total_list_of_threads = []
 
-    #
+    # iterates through each html extract
     for soup in soups:
 
-        #
+        # scrapes the html into a list of Thread objects
         list_of_threads = scrape_to_list(soup)
 
-        #
+        # loops through each Thread object in the list_of_threads 
         for thread in list_of_threads:
 
-            # 
+            # adds each Thread object into the total_list_of_threads
             total_list_of_threads.append(thread)
 
 
-
+    # removes duplicate posts from duplicate Threads using the previous list of threads 
+    # and the newly scraped list of threads.
     non_duplicate_list = remove_duplicates(total_list_of_threads, previous_thread_additions_to_csv_file)
 
 
+    """
+    # prints the number of posts that are now in the previous thread list
 
     size = 0
-
     for thread in previous_thread_additions_to_csv_file:
 
         for post in thread.posts:
 
             size += 1
-
+    
     print ("\nThe comparator for the past iteration has been updated to include a total of " + str(size) + " posts.\n")
+    """
 
     # transforms the non_duplicate_list into an array
     array = list_to_NumPy_array(non_duplicate_list)
@@ -142,52 +128,6 @@ def data_collection_and_processing ():
     # add NumPy array to the dataset file
     write_to_dataset(array)
 
-    """
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # gets the soup of the page
-    soup = get_soup_from_page(url)
-
-    # gets the data into a list of Thread Objects
-    list_of_threads = scrape_to_list(soup)
-
-    # check for duplicate threads in the NumPy array and the dataset
-    non_duplicate_list = remove_duplicates(list_of_threads, previous_thread_additions_to_csv_file)
-
-
-    size = 0
-
-    for thread in previous_thread_additions_to_csv_file:
-
-        for post in thread.posts:
-
-            size += 1
-
-    print ("\nThe comparator for the past iteration has been updated to include a total of " + str(size) + " posts.\n")
-
-    # transforms the non_duplicate_list into an array
-    array = list_to_NumPy_array(non_duplicate_list)
-
-    # add NumPy array to the dataset file
-    write_to_dataset(array)
-    
-    
-    
-    
-    """
 
 
 
@@ -208,12 +148,11 @@ def get_soup_from_page (url):
     session.mount('http://', adapter)
     session.mount('https://', adapter)
 
+    # extracts the data from the url
     results =  session.get(url, headers=headers)
 
-
-    # first filtering of data
+    # specifies the html text to be stored
     soup = BeautifulSoup(results.text, "html.parser")
-
 
     # returns the text of the webpage
     return soup
@@ -483,9 +422,10 @@ def scrape_to_list (soup):
 def remove_duplicates (new_list, previous_thread_list):
 
 
+    """
+    # prints the number of posts in the previous_thread_list
 
     size = 0
-
     for thread in previous_thread_list:
 
         for post in thread.posts:
@@ -493,10 +433,12 @@ def remove_duplicates (new_list, previous_thread_list):
             size += 1
 
     print ("The previous_thread_list has " + str(size) + " posts.\n")
+    """
 
+    """
+    # prints the number of posts in the new_list 
 
     size = 0
-
     for thread in new_list:
 
         for post in thread.posts:
@@ -504,18 +446,17 @@ def remove_duplicates (new_list, previous_thread_list):
             size += 1
 
     print ("The new_list of threads has " + str(size) + " posts.\n")
+    """
     
     
-    
-    
-    
+    """
     #
     # everything after this line and until this line:
     # 
     # list_without_duplicates = []
     # 
     # is responsible for updating the previous_threads_list
-    #
+    """
 
     # tracks which old_threads are not present in the list of new threads
     indexes_of_old_threads_not_in_new_threads = []
@@ -557,7 +498,7 @@ def remove_duplicates (new_list, previous_thread_list):
             # old thread to a list to be removed from the list of old threads later on
             if (found_old_thread_in_new_list == False):
                 
-                print("\nDidn't find old thread in list of new threads!")
+                #print("\nDidn't find old thread in list of new threads!")
 
                 # notes down which old_threads are not in the new_list of Thread objects
                 indexes_of_old_threads_not_in_new_threads.append(old_thread_index)
@@ -565,15 +506,7 @@ def remove_duplicates (new_list, previous_thread_list):
             # increments the index variable
             old_thread_index += 1
 
-        
-    
-    
-    
-    
-    
-    
-    
-    
+
 
 
     non_duplicate_new_thread_post_size = 0
@@ -609,15 +542,14 @@ def remove_duplicates (new_list, previous_thread_list):
                 # titles are blank ("" == "") could be true for completely different threads
                 if (formatted_new_first_post_of_thread == formatted_old_first_post_of_thread):
 
-                    print("\nFound new thread in list of old threads!")
+                    #print("\nFound new thread in list of old threads!")
                     
                     # sets the bool to be True denoting that this new thread exists in the list of old threads
                     found_new_thread_in_old_list = True
                     
 
-                    print(str(len(new_thread.posts)) + " posts in the new thread.")
-                    print(str(len(old_thread.posts)) + " posts in the old thread.")
-
+                    #print(str(len(new_thread.posts)) + " posts in the new thread.")
+                    #print(str(len(old_thread.posts)) + " posts in the old thread.")
 
 
                     # a list that holds all of the posts that are present in both of Thread.posts lists
@@ -686,15 +618,15 @@ def remove_duplicates (new_list, previous_thread_list):
 
 
 
-                    print("Added " + str(len(list_of_non_duplicate_posts)) + " posts from a shared thread to the old thread.posts list")
-                    print("Deleted " + str(len(list_of_duplicate_posts)) + " duplicate posts from the new thread")
+                    #print("Added " + str(len(list_of_non_duplicate_posts)) + " posts from a shared thread to the old thread.posts list")
+                    #print("Deleted " + str(len(list_of_duplicate_posts)) + " duplicate posts from the new thread")
 
                     # sets the Thread.posts list to the correct list
                     old_thread.set_posts(list_of_all_posts)
                     new_thread.set_posts(list_of_non_duplicate_posts)
 
-                    print(str(len(new_thread.posts)) + " posts in the new thread")
-                    print(str(len(old_thread.posts)) + " posts in the old thread")
+                    #print(str(len(new_thread.posts)) + " posts in the new thread")
+                    #print(str(len(old_thread.posts)) + " posts in the old thread")
                     
 
                 
@@ -715,7 +647,6 @@ def remove_duplicates (new_list, previous_thread_list):
 
 
     
-
       
     print("\n" + str(non_duplicate_new_thread_post_size) + " posts in the new threads that weren't in the list of old threads.")
 
@@ -735,7 +666,7 @@ def remove_duplicates (new_list, previous_thread_list):
         # remove the old thread at the specified index
         previous_thread_list.pop(index)
 
-        print("Removed a thread from the old thread list.")
+        #print("Removed a thread from the old thread list.")
 
 
     print("\nAdded " + str(len(indexes_of_new_threads_not_found_in_old_threads)) + " threads from the new thread list to the old thread list.")
@@ -746,14 +677,14 @@ def remove_duplicates (new_list, previous_thread_list):
         # adds the new_thread at the specified index to the list of old threads
         previous_thread_list.append(new_list[index])
 
-        print("Added a thread from the new thread list to the old thread list.")
+        #print("Added a thread from the new thread list to the old thread list.")
 
 
 
-
+    """
+    # prints how many posts are in the previous_thread_list
 
     size = 0
-
     for thread in previous_thread_list:
 
         for post in thread.posts:
@@ -761,16 +692,14 @@ def remove_duplicates (new_list, previous_thread_list):
             size += 1
 
     print ("\nAfter removing duplicates it has " + str(size) + " posts.\n")
+    """
 
 
-
-    print(str(len(previous_thread_list)) + " threads in old thread list.")
-    print(str(len(new_list)) + " threads in new thread list.")
+    #print(str(len(previous_thread_list)) + " threads in old thread list.")
+    #print(str(len(new_list)) + " threads in new thread list.")
 
 
     
-
-
 
     
     # creating an empty list for the posts that aren't duplicates to be added to the csv file (dataset)
@@ -783,10 +712,10 @@ def remove_duplicates (new_list, previous_thread_list):
         list_without_duplicates.append(new_thread)
 
 
+    """
+    # prints the number of new/unique posts that are from duplicate threads
 
-    # 
     size = 0
-
     for thread in list_without_duplicates:
 
         for post in thread.posts:
@@ -794,6 +723,7 @@ def remove_duplicates (new_list, previous_thread_list):
             size += 1
     new_posts_from_duplicate_threads = size - non_duplicate_new_thread_post_size
     print("\nThere are " + str(new_posts_from_duplicate_threads) + " new non-duplicate posts from duplicate threads.")
+    """
 
 
     # returns the list of Thread objects without 
@@ -901,8 +831,10 @@ if __name__=="__main__":
     # runs the web-scraping once
     data_collection_and_processing()
 
-    size = 0
+    """
+    # prints the number of posts in the previous_thread_additions_to_csv_file
 
+    size = 0
     for thread in previous_thread_additions_to_csv_file:
 
         for post in thread.posts:
@@ -910,6 +842,7 @@ if __name__=="__main__":
             size += 1
 
     print ("\nThe comparator for the past iteration has " + str(size) + " posts.\n")
+    """
 
     # runs the main program once every minute
     schedule.every().minute.do(data_collection_and_processing) 
@@ -965,7 +898,111 @@ if __name__=="__main__":
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+#      Thread#,   Num1/Num2/Num3/Num4/Num5,
+
+# The thread# could come from a hashmap or 
+# It could just be an index like a the latest one is the last_thread_num + 1
+
+
 """
+# 
+def get_last_thread_number ():
+
+    # opening the dataset file
+    reader_file = open(r"", 'r', encoding='utf-8')
+
+    # creating the reader for the csv file 
+    reader = csv.reader(reader_file)
+
+
+    # sets the default value of post to None if there were no rows of data in the csv file
+    post = None
+
+    # loops through every post in the csv file
+    for post in reader:
+
+        # passes through each post
+        pass
+
+    # closes the file
+    reader_file.close()
+
+    #
+    print(post)
+
+    #
+    post_attributes = post.split(',')
+
+    print(int(post_attributes[0]))
+
+    # returns the last 
+    return int(post_attributes[0])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# tells users that it is running again
+print("\nScanning /pol for new posts...")
+
+
+# the url we are using to draw text data
+url = "https://boards.4chan.org/pol/"
+
+
+# gets the soup of the page
+soup = get_soup_from_page(url)
+
+# gets the data into a list of Thread Objects
+list_of_threads = scrape_to_list(soup)
+
+# check for duplicate threads in the NumPy array and the dataset
+non_duplicate_list = remove_duplicates(list_of_threads, previous_thread_additions_to_csv_file)
+
+
+size = 0
+
+for thread in previous_thread_additions_to_csv_file:
+
+    for post in thread.posts:
+
+        size += 1
+
+print ("\nThe comparator for the past iteration has been updated to include a total of " + str(size) + " posts.\n")
+
+# transforms the non_duplicate_list into an array
+array = list_to_NumPy_array(non_duplicate_list)
+
+# add NumPy array to the dataset file
+write_to_dataset(array)
+    
+    
+    
+    
+    
+
+
+
 
 print("Added " + str(len(indexes_to_add_new_posts_to_old_list)) + " posts from a shared thread to the old thread.posts list")
 
@@ -1014,7 +1051,6 @@ except:
     print("A   TypeError: 'NoneType' object is not iterable    exception occurred")
 
 
-"""
 
 
 
@@ -1028,7 +1064,6 @@ except:
 
 
 
-"""
 
 Search through the csv file for posts that are in the 20 threads on the homepage of pol
 
