@@ -49,6 +49,15 @@ import re
 fix country of origin
 
 
+RESOLVED Duplicates - Potential solution is to only output a thread and its posts to the csv file if that thread was no longer found on 
+                the first ten pages of the /pol. This means that it would become archived. Thus, I wouldn't need to run a differnt
+                program to check for duplicates because I would only ever output the thread (and associated posts) to the csv file
+                until I knew the program wouldn't need them again. 
+
+
+RESOLVED - Test whether the program catches forum replies underneath the [+] icon. # replies and # images omitted. Click here to view.
+NOTES - Yes, it does. It catches all of the replies because although they are initially hidden from the user, the html which the 
+        program scrapes catches them all
 """
 
 
@@ -106,7 +115,7 @@ def data_collection_and_processing ():
 
     # removes duplicate posts from duplicate Threads using the previous list of threads 
     # and the newly scraped list of threads.
-    non_duplicate_list = remove_duplicates(total_list_of_threads, previous_thread_additions_to_csv_file)
+    non_duplicate_list = remove_duplicate_threads_and_posts(total_list_of_threads, previous_thread_additions_to_csv_file)
 
 
     """
@@ -175,69 +184,77 @@ def get_posts_from_single_thread (thread_url):
     list_of_threads = soup.find_all('div', class_='thread')
 
 
-    # iterates through each post in the thread and 
-    for post in list_of_threads[0].find_all('div', class_= ['postContainer opContainer','postContainer replyContainer']):
 
-        # find the variables needed to instantiate a Post object
-        # to find the time and country of origin I need to navigate to the 
-        # span nameBlock of the post
-        nameBlock = post.find("span", class_="nameBlock")
+    #print("There are " + str(len(list_of_threads)) + " threads in the html from the url.")
+    #print("There are " + str(len(list_of_threads[0].find_all('div', class_= ['postContainer opContainer','postContainer replyContainer']))) + " posts in the html from the url.")
 
 
+    # checks if there is at least one thread in the html
+    if (len(list_of_threads) > 0):
 
-        # finding the time of the Post
-        # then need to navigate to the span dateTime postNum part
-        time = str(post.find("span", class_="dateTime postNum").text)
-        
-        # removes the user id from the end
-        time = time[:21]
+        # iterates through each post in the thread and 
+        for post in list_of_threads[0].find_all('div', class_= ['postContainer opContainer','postContainer replyContainer']):
 
-        # turn this into Python datetime objext using string methods
-        date_object = datetime(2000 + int(time[6:8]), int(time[:2]), int(time[3:5]), int(time[13:15]), int(time[16:18]), int(time[19:21]))
-
-
-        # FIX
-        # finding the Country of the Post
-        # str parse through nameBlock until I find the span with the title
-        # containing the country 
-        parse = str(nameBlock.span.find_next_sibling().find_next_sibling())        
-        
-        # iterate over string
-        quotation_index = []
-        index = 0
-        while (index < len(parse)):
-            if (parse[index] == '"'):
-                quotation_index.append(index)
-            index = index + 1
-        
-
-        # parses the country from the parse variable and the number of quotation marks
-        if (len(quotation_index) == 4):
-            countryOfOrigin = parse[quotation_index[2] + 1 : quotation_index[3]]
-        elif (len(quotation_index) > 4):
-            countryOfOrigin = "Moderator"
-        else:
-            countryOfOrigin = "<br> (Error)"
-
-
-        # finding the text 
-        text = post.find("blockquote", class_="postMessage").text
-
-        # cut out first eleven characters of each new line (cuttting out the user id)
-        # if it has ">>" at the start
-        while (text[:2] == ">>"):
-            text = text[11:]
-
-        text = str(text).replace('>', '')
+            # find the variables needed to instantiate a Post object
+            # to find the time and country of origin I need to navigate to the 
+            # span nameBlock of the post
+            nameBlock = post.find("span", class_="nameBlock")
 
 
 
+            # finding the time of the Post
+            # then need to navigate to the span dateTime postNum part
+            time = str(post.find("span", class_="dateTime postNum").text)
+            
+            # removes the user id from the end
+            time = time[:21]
 
-        # instantiate a Post object
-        p = Post(countryOfOrigin, date_object, text)
+            # turn this into Python datetime objext using string methods
+            date_object = datetime(2000 + int(time[6:8]), int(time[:2]), int(time[3:5]), int(time[13:15]), int(time[16:18]), int(time[19:21]))
 
-        # append the Post object to the posts list
-        posts.append(p)
+
+            # FIX
+            # finding the Country of the Post
+            # str parse through nameBlock until I find the span with the title
+            # containing the country 
+            parse = str(nameBlock.span.find_next_sibling().find_next_sibling())        
+            
+            # iterate over string
+            quotation_index = []
+            index = 0
+            while (index < len(parse)):
+                if (parse[index] == '"'):
+                    quotation_index.append(index)
+                index = index + 1
+            
+
+            # parses the country from the parse variable and the number of quotation marks
+            if (len(quotation_index) == 4):
+                countryOfOrigin = parse[quotation_index[2] + 1 : quotation_index[3]]
+            elif (len(quotation_index) > 4):
+                countryOfOrigin = "Moderator"
+            else:
+                countryOfOrigin = "<br> (Error)"
+
+
+            # finding the text 
+            text = post.find("blockquote", class_="postMessage").text
+
+            # cut out first eleven characters of each new line (cuttting out the user id)
+            # if it has ">>" at the start
+            while (text[:2] == ">>"):
+                text = text[11:]
+
+            text = str(text).replace('>', '')
+
+
+
+
+            # instantiate a Post object
+            p = Post(countryOfOrigin, date_object, text)
+
+            # append the Post object to the posts list
+            posts.append(p)
 
 
     # returns the list of Post objects
@@ -418,8 +435,8 @@ def scrape_to_list (soup):
 
 
 
-# ensures there are no duplicates of threads/data in the dataset
-def remove_duplicates (new_list, previous_thread_list):
+# ensures there are no duplicates threads in the dataset
+def remove_duplicate_threads_and_posts (new_list, previous_thread_list):
 
 
     """
@@ -648,14 +665,26 @@ def remove_duplicates (new_list, previous_thread_list):
 
     
       
-    print("\n" + str(non_duplicate_new_thread_post_size) + " posts in the new threads that weren't in the list of old threads.")
+    print("\n" + str(non_duplicate_new_thread_post_size) + " posts in the new threads that weren't in the list of old threads. (The first time the program runs, the list of old threads will be empty.)")
 
 
 
+    # Holds the threads that were in the previous_thread_list, but not the new_thread_list. Since these threads have been pushed off
+    # the front ten pages of /pol, this program will not encounter them again. Thus, I will send these Threads to the csv file because
+    # this is the last time the program will encounter them. 
 
+    # I need to make sure that the Threads in the previous_thread_list are not trimmed. All of the new posts are added to. Otherwise, 
+    # the Thread will be trimmed every iteration of the program (since it is removing duplicates in my previous approach that 
+    # sent the posts to the csv file every run until the Thread was no longer seen on the html scraping, it might be the case that 
+    # the Posts objects in each Thread are cut down every run.) I need to do the opposite of this. I need to have EVERY Post in that
+    # Thread saved and added so that when the Thread is no longer on the front pages of /pol, it will send the entire list of Posts to
+    # the csv file.  
+    threads_to_add_to_the_csv = []
 
 
     print("\nRemoved  " + str(len(indexes_of_old_threads_not_in_new_threads)) + " threads from the old thread list that were not in the new thread list.")
+
+    print("\nThese threads are being outputted to the csv file shortly...")
 
     # sorts the list of indexes_of_old_threads_that_are_not_in_the_list_of_new_threads into reverse order
     indexes_of_old_threads_not_in_new_threads = sorted(indexes_of_old_threads_not_in_new_threads, reverse=True)
@@ -663,7 +692,10 @@ def remove_duplicates (new_list, previous_thread_list):
     # removes the old threads that are not in the list of new threads using the indexes of those old_threads
     for index in indexes_of_old_threads_not_in_new_threads:
 
-        # remove the old thread at the specified index
+        # add the Thread that's being removed to a list of threads to be outputted to the csv file.
+        threads_to_add_to_the_csv.append(previous_thread_list[index])
+
+        # remove the old thread at the specified index from the previous_thread_list
         previous_thread_list.pop(index)
 
         #print("Removed a thread from the old thread list.")
@@ -678,6 +710,12 @@ def remove_duplicates (new_list, previous_thread_list):
         previous_thread_list.append(new_list[index])
 
         #print("Added a thread from the new thread list to the old thread list.")
+
+    # prints the number of Threads in the previous_thread_list
+    print("\n There are now " + str(len(previous_thread_list)) + " Threads in the previous_thread_list.")
+
+
+
 
 
 
@@ -699,8 +737,12 @@ def remove_duplicates (new_list, previous_thread_list):
     #print(str(len(new_list)) + " threads in new thread list.")
 
 
-    
 
+
+
+
+    
+    """
     
     # creating an empty list for the posts that aren't duplicates to be added to the csv file (dataset)
     list_without_duplicates = []
@@ -710,6 +752,9 @@ def remove_duplicates (new_list, previous_thread_list):
 
         # adds the String posts from the new_thread.posts list to list_without_duplicates
         list_without_duplicates.append(new_thread)
+    """
+
+
 
 
     """
@@ -727,7 +772,7 @@ def remove_duplicates (new_list, previous_thread_list):
 
 
     # returns the list of Thread objects without 
-    return list_without_duplicates
+    return threads_to_add_to_the_csv
 
 
 

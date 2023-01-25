@@ -93,6 +93,46 @@ def main():
 
 
 
+    """
+    Creates two new columns Sentiment Score and Topic Identity
+    """
+
+
+    # creating 2 lists 'ids' and 'marks'
+    sentiment_scores = []
+    topic_identities = []
+
+    # Creating columns 'ID' and 'Uni_marks' 
+    # using Dictionary and zip()
+    dataframe["Sentiment Score"] = dict(zip(sentiment_scores, dataframe["Thread Title"]))
+    dataframe["Topic Identity"] = dict(zip(topic_identities, dataframe["Thread Title"]))
+
+
+
+    """
+    Loops through each row in the dataset and sets the values of the two new columns to
+    the values of the sentiment analysis and topic analysis generated from the Post Text
+    String
+    
+    For topic analysis, the number of words that need to be included in the topic for 
+    it to count as a post underneath that topic should be a percentage of the number of 
+    (non-stopword and meaningful) words in the post.    
+    """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     from sklearn.feature_extraction.text import CountVectorizer
 
