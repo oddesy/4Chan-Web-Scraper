@@ -1,3 +1,11 @@
+####################################################
+# Name: Jackson Gregg
+# Date: 1/25/2023
+# Objective: The goal of this program is to run text analysis on the data in the 
+# Pol_Forum_Dataset.csv file.  
+####################################################
+
+
 # import basic libs
 import pandas as pd
 import numpy as np
@@ -9,9 +17,18 @@ import os
 # imports datetime to store time data in objects
 from datetime import datetime
 
+
+
+
+
 # imports tensorflow libraries
 import tensorflow as tf
 from tensorflow import keras
+
+
+
+
+
 
 # imports libraries to clean data
 import nltk
@@ -52,7 +69,7 @@ def main():
     # removes null rows
     dataframe.dropna()
 
-    # iterates through the string data in the dataframe and formats them
+    # iterates through the rows of string data in the dataframe and formats them into the columns named above
     for row in range(0, int(dataframe.size / 4)):
         
         # formats text for the Thread Title column
@@ -70,7 +87,7 @@ def main():
         dataframe.at[row, "Post Text"] = format_text(original_post)
 
 
-    print("Clean Data Obtained.")
+    print("Clean Data Obtained.\n")
 
 
     # output the dataframe
@@ -79,98 +96,53 @@ def main():
 
 
 
+    # Now that I have prepared the dataframe correctly, I can 
 
-
-
-    print(dataframe["Post Text"][100])
-
-
-
-
-    print("\n\n\n\n")
-
-
-
-
-
-    """
-    Creates two new columns Sentiment Score and Topic Identity
-    """
-
-
-    # creating 2 lists 'ids' and 'marks'
-    sentiment_scores = []
-    topic_identities = []
-
-    # Creating columns 'ID' and 'Uni_marks' 
-    # using Dictionary and zip()
-    dataframe["Sentiment Score"] = dict(zip(sentiment_scores, dataframe["Thread Title"]))
-    dataframe["Topic Identity"] = dict(zip(topic_identities, dataframe["Thread Title"]))
-
-
-
-    """
-    Loops through each row in the dataset and sets the values of the two new columns to
-    the values of the sentiment analysis and topic analysis generated from the Post Text
-    String
-    
-    For topic analysis, the number of words that need to be included in the topic for 
-    it to count as a post underneath that topic should be a percentage of the number of 
-    (non-stopword and meaningful) words in the post.    
-    """
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    #
     from sklearn.feature_extraction.text import CountVectorizer
 
-    # only includes words that appear in less than 80% of the document and 
+    # creates a vector that will hold the 
+    # only includes words that appear in less than 90% of the document and 
     # appear in at least 2 documents
-    count_vect = CountVectorizer(max_df=0.8, min_df=2, stop_words='english')
+    count_vect = CountVectorizer(max_df=0.90, min_df=2, stop_words='english')
     
-    #
+    # creates a document-term matrix where the rows are the seperate documents (in this case the text in posts) and
+    # the columns are specific words. The values of this matrix are the number of times the word appears in the 
+    # post text. 
     doc_term_matrix = count_vect.fit_transform(dataframe["Post Text"].values.astype('U'))
 
 
-    print(doc_term_matrix[100:110])
-
-
-    print(doc_term_matrix)
+    #print(doc_term_matrix[0:10])
+    # print(doc_term_matrix)
 
 
 
 
 
-    from sklearn.decomposition import LatentDirichletAllocation
+    # loops through the LDA topic modeling algorithm for different numbers of topics
+    for i in range(3, 20):
 
-    LDA = LatentDirichletAllocation(n_components=5, random_state=42)
-    LDA.fit(doc_term_matrix)
-
-
-
-    import random
-
-    for i in range(10):
-        random_id = random.randint(0,len(count_vect.get_feature_names()))
-        print(count_vect.get_feature_names()[random_id])
+        # groups the words based on the number of topics and the word vector
+        topic_modeling(i, count_vect, doc_term_matrix)
 
 
 
-    first_topic = LDA.components_[0]
+    # Topics = 6
 
 
+    
+
+
+
+
+
+
+
+    
+
+
+
+    
 
 
 
@@ -222,12 +194,61 @@ def format_text(unformatted_post):
         unformatted_post = re.sub('\s{2,}', " ", unformatted_post)
 
 
+        # lemmatizer = WordNetLemmatizer()
+        """
+        
+
+        Something this method fails to do is lemmatization (tenses are changed to present tense and everything is in first person)
+        Also, words should be stemmed (reduced to the base/root form)
+        """
+
+
+
+
+
     return unformatted_post
 
 
 
 
+#
+def topic_modeling(num_of_topics, count_vect, doc_term_matrix):
 
+    # Latent Dirichlet Allocation is a 
+    from sklearn.decomposition import LatentDirichletAllocation
+
+
+    # n_components is the number of topics
+    # random_state is a variable that controls the random assignment of words to topics during the first part of the algorithm
+    LDA = LatentDirichletAllocation(n_components = num_of_topics, random_state = 42, max_iter=50)
+    
+    # 
+    LDA.fit(doc_term_matrix)
+
+
+
+    # collects the topics that the model outputed
+    topics = LDA.components_[0:num_of_topics]
+
+    #print(len(topics))
+
+    
+    # this iterator keeps track of which topic is being examined
+    i = 1    
+
+    # loops through every topic
+    for topic in topics:
+
+        print("\nTopic #" + str(i) + ":")
+
+        top_10_words = topic.argsort() [-10:]
+
+        # outputs the top 10 words that represent the topic
+        for index in top_10_words:
+            
+            print(count_vect.get_feature_names_out()[index])
+
+        i += 1
 
 
 
@@ -251,41 +272,6 @@ if __name__=="__main__":
 
 
 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -300,11 +286,32 @@ print(tf.version.VERSION)
 print(len(tf.config.list_physical_devices('GPU')) > 0)
 """
 
+"""
+# creating 2 lists 'ids' and 'marks'
+    sentiment_scores = []
+    topic_identities = []
+
+    # Creating columns 'ID' and 'Uni_marks' 
+    # using Dictionary and zip()
+    dataframe["Sentiment Score"] = dict(zip(sentiment_scores, dataframe["Thread Title"]))
+    dataframe["Topic Identity"] = dict(zip(topic_identities, dataframe["Thread Title"]))
+
+
+
+# print(dataframe["Post Text"][100])
 
 
 
 
+    print("\n\n\n\n")
 
+"""
+
+
+
+"""
+Creates two new columns Sentiment Score and Topic Identity
+"""
 
 
 
@@ -332,3 +339,35 @@ print(len(tf.config.list_physical_devices('GPU')) > 0)
 
 # creating a vocabulary containing all the words each user ever posted on 4Chan/pol with the database
 
+
+
+
+"""
+Loops through each row in the dataset and sets the values of the two new columns to
+the values of the sentiment analysis and topic analysis generated from the Post Text
+String
+    
+For topic analysis, the number of words that need to be included in the topic for 
+it to count as a post underneath that topic should be a percentage of the number of 
+(non-stopword and meaningful) words in the post.    
+"""    
+
+
+
+
+
+"""
+
+from gensim import matutils, models
+import scipy.sparse
+
+term_doc_matrix = doc_term_matrix.transpose
+
+term_doc_matrix.head()
+
+
+
+sparse_counts = scipy.sparse.csr_matrix(term_doc_matrix)
+corpus = matutils.Sparse2Corpus(sparse_counts)
+
+"""

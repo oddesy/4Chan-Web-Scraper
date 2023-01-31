@@ -39,6 +39,15 @@ import re
 PROBLEM - Fix country of origin
 
 
+PROBLEM - DUPLICATES - I just had a situation 1/25/23 where the program added the same post to the csv file 256,000 times. I'm not 
+sure where the problem is, so I just built some code PurgeDuplicates and CleanDataset to deal with the issue. 
+
+
+
+
+
+
+
 RESOLVED Duplicates - Potential solution is to only output a thread and its posts to the csv file if that thread was no longer found on 
                 the first ten pages of the /pol. This means that it would become archived. Thus, I wouldn't need to run a differnt
                 program to check for duplicates because I would only ever output the thread (and associated posts) to the csv file
@@ -350,7 +359,21 @@ def scrape_to_list (soup):
         # then need to navigate to the span subject portion
         title = nameBlock.find("span", class_="subject").text
 
-        
+
+
+
+        # the string_id is important because it allows one to know for sure which thread is which
+        # there are many threads with no title and some with no post text. This helps differentiate 
+        # between them. 
+        string_id = thread.find("div", class_="postInfoM mobile").text
+
+        # the index of the string_id in the extracted string of html
+        index_of_string_id = str(string_id).find("No.")
+
+        thread_id = re.split('"', string_id[index_of_string_id + 3:])
+
+        thread_id = int(thread_id[0])
+
 
         # gets the full thread from the html of the page 
         # this only selects the non-pinned threads like the logical falacies one and the 
@@ -412,7 +435,7 @@ def scrape_to_list (soup):
 
             
         # create a Thread object with the title
-        t = Thread(title, new_posts)
+        t = Thread(title, thread_id, new_posts)
 
         # append thread to the THREADS list after completely instaniating a Thread 
         # Object with all of its posts
@@ -425,7 +448,8 @@ def scrape_to_list (soup):
 
 
 
-# ensures there are no duplicates threads in the dataset
+# ensures there are no duplicates threads and posts in the dataset by updating the previous_threads_list to hold
+# the complete list of posts
 def remove_duplicate_threads_and_posts (new_list, previous_thread_list):
 
 
@@ -455,15 +479,6 @@ def remove_duplicate_threads_and_posts (new_list, previous_thread_list):
     print ("The new_list of threads has " + str(size) + " posts.\n")
     """
     
-    
-    """
-    #
-    # everything after this line and until this line:
-    # 
-    # list_without_duplicates = []
-    # 
-    # is responsible for updating the previous_threads_list
-    """
 
     # tracks which old_threads are not present in the list of new threads
     indexes_of_old_threads_not_in_new_threads = []
@@ -481,7 +496,7 @@ def remove_duplicate_threads_and_posts (new_list, previous_thread_list):
         if (len(old_thread.posts) > 0):
 
             # 
-            formatted_old_first_post_of_thread = "[" + str(old_thread.title) + ","  + str(old_thread.posts[0].country) + "," + str(old_thread.posts[0].time) + "," + str(old_thread.posts[0].text) + "]"
+            formatted_old_first_post_of_thread = "[" + str(old_thread.title) + "," + str(old_thread.id) + "," + str(old_thread.posts[0].country) + "," + str(old_thread.posts[0].time) + "," + str(old_thread.posts[0].text) + "]"
 
             # loops through the Thread objects in new_list
             for new_thread in new_list:
@@ -490,7 +505,7 @@ def remove_duplicate_threads_and_posts (new_list, previous_thread_list):
                 if (len(new_thread.posts) > 0):
 
                     # gets a formatted string of the first post of the thread
-                    formatted_new_first_post_of_thread = "[" + str(new_thread.title) + ","  + str(new_thread.posts[0].country) + "," + str(new_thread.posts[0].time) + "," + str(new_thread.posts[0].text) + "]"
+                    formatted_new_first_post_of_thread = "[" + str(new_thread.title) + "," + str(new_thread.id) + "," + str(new_thread.posts[0].country) + "," + str(new_thread.posts[0].time) + "," + str(new_thread.posts[0].text) + "]"
 
                     # checks if the two Threads are the same (this is done by comparing the original post of each
                     # thread by looking at the first post in each Thread.posts list)
@@ -540,8 +555,8 @@ def remove_duplicate_threads_and_posts (new_list, previous_thread_list):
             if (len(old_thread.posts) > 0 and len(new_thread.posts) > 0):
 
                 # sets the two formatted strings of each post 
-                formatted_new_first_post_of_thread = "[" + str(new_thread.title) + ","  + str(new_thread.posts[0].country) + "," + str(new_thread.posts[0].time) + "," + str(new_thread.posts[0].text) + "]"
-                formatted_old_first_post_of_thread = "[" + str(old_thread.title) + ","  + str(old_thread.posts[0].country) + "," + str(old_thread.posts[0].time) + "," + str(old_thread.posts[0].text) + "]"
+                formatted_new_first_post_of_thread = "[" + str(new_thread.title) + "," + str(new_thread.id) + ","+ str(new_thread.posts[0].country) + "," + str(new_thread.posts[0].time) + "," + str(new_thread.posts[0].text) + "]"
+                formatted_old_first_post_of_thread = "[" + str(old_thread.title) + "," + str(old_thread.id) + ","+ str(old_thread.posts[0].country) + "," + str(old_thread.posts[0].time) + "," + str(old_thread.posts[0].text) + "]"
 
                 # checks if the two Threads are the same (this is done by comparing the original post of each
                 # thread by looking at the first post in each Thread.posts list)
@@ -576,14 +591,14 @@ def remove_duplicate_threads_and_posts (new_list, previous_thread_list):
                         found_new_post_in_old_list = False
 
                         # a String that holds the String concatenation of the instance variables of the  
-                        formatted_new_thread_post = "[" + str(new_thread.title) + ","  + str(new_post.country) + "," + str(new_post.time) + "," + str(new_post.text) + "]"
+                        formatted_new_thread_post = "[" + str(new_thread.title) + "," + str(new_thread.id) + "," + str(new_post.country) + "," + str(new_post.time) + "," + str(new_post.text) + "]"
 
 
                         # loops through the posts in the old thread
                         for old_post in old_thread.posts:
 
                             # formats the post from the old thread
-                            formatted_old_thread_post = "[" + str(old_thread.title) + ","  + str(old_post.country) + "," + str(old_post.time) + "," + str(old_post.text) + "]"
+                            formatted_old_thread_post = "[" + str(old_thread.title) + "," + str(old_thread.id) + "," + str(old_post.country) + "," + str(old_post.time) + "," + str(old_post.text) + "]"
 
 
                             # checks if the post is in both the new and old lists
@@ -705,60 +720,6 @@ def remove_duplicate_threads_and_posts (new_list, previous_thread_list):
     print("\n There are now " + str(len(previous_thread_list)) + " Threads in the previous_thread_list.")
 
 
-
-
-
-
-    """
-    # prints how many posts are in the previous_thread_list
-
-    size = 0
-    for thread in previous_thread_list:
-
-        for post in thread.posts:
-
-            size += 1
-
-    print ("\nAfter removing duplicates it has " + str(size) + " posts.\n")
-    """
-
-
-    #print(str(len(previous_thread_list)) + " threads in old thread list.")
-    #print(str(len(new_list)) + " threads in new thread list.")
-
-
-
-
-
-
-    
-    """
-    
-    # creating an empty list for the posts that aren't duplicates to be added to the csv file (dataset)
-    list_without_duplicates = []
-    
-    # loops through the Thread objects in the new list
-    for new_thread in new_list:
-
-        # adds the String posts from the new_thread.posts list to list_without_duplicates
-        list_without_duplicates.append(new_thread)
-    """
-
-
-
-
-    """
-    # prints the number of new/unique posts that are from duplicate threads
-
-    size = 0
-    for thread in list_without_duplicates:
-
-        for post in thread.posts:
-
-            size += 1
-    new_posts_from_duplicate_threads = size - non_duplicate_new_thread_post_size
-    print("\nThere are " + str(new_posts_from_duplicate_threads) + " new non-duplicate posts from duplicate threads.")
-    """
 
 
     # returns the list of Thread objects without 
